@@ -1,0 +1,18 @@
+# Bilibili Search API 依赖
+
+# Web框架
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+
+# 数据验证
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# 环境变量
+python-dotenv==1.0.0
+
+# HTTP请求
+requests==2.31.0
+
+# 异步支持 (可选)
+httpx==0.26.0
