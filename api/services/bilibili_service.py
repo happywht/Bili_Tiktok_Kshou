@@ -10,10 +10,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 
 from bilibili_search import BilibiliSearchAgent, BilibiliVideo
 from ..models.schemas import VideoItem, VideoDetail, VideoSummary, VideoSummaryInfo, VideoStats
+from .base import PlatformService, PlatformType, ContentItem
 
 
-class BilibiliService:
+class BilibiliService(PlatformService):
     """B站服务封装"""
+
+    platform = PlatformType.BILIBILI
 
     def __init__(self, sessdata: str = None):
         self.agent = BilibiliSearchAgent(sessdata=sessdata)
@@ -45,6 +48,61 @@ class BilibiliService:
         )
 
         return [self._video_to_dict(v) for v in videos]
+
+    def search(
+        self,
+        keyword: str,
+        page: int = 1,
+        page_size: int = 20,
+        **kwargs
+    ) -> List[ContentItem]:
+        """
+        实现基类的搜索方法
+
+        Args:
+            keyword: 搜索关键词
+            page: 页码
+            page_size: 每页数量
+            **kwargs: 其他参数（如order排序方式）
+
+        Returns:
+            ContentItem列表
+        """
+        order = kwargs.get('order', 'totalrank')
+        videos = self.search_videos(keyword, page, page_size, order)
+
+        # 转换为 ContentItem 列表
+        items = []
+        for v in videos:
+            items.append(ContentItem(
+                id=v.get('bvid', ''),
+                title=v.get('title', ''),
+                author=v.get('author', ''),
+                cover_url=v.get('cover_url', ''),
+                url=v.get('video_url', ''),
+                platform=PlatformType.BILIBILI,
+                play_count=v.get('play_count', 0),
+                like_count=v.get('like_count', 0),
+                comment_count=0,
+                share_count=0,
+                description=v.get('description', ''),
+                tags=v.get('tags', []),
+                publish_time=str(v.get('pubdate', '')),
+                duration=v.get('duration', ''),
+            ))
+        return items
+
+    def get_detail(self, content_id: str) -> Dict[str, Any]:
+        """
+        实现基类的获取详情方法
+
+        Args:
+            content_id: 内容ID（BV号）
+
+        Returns:
+            详情数据
+        """
+        return self.get_video_detail(content_id)
 
     def get_video_detail(self, bvid: str) -> Dict[str, Any]:
         """

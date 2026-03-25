@@ -42,10 +42,15 @@ export const VideoGrid: React.FC<VideoGridProps> = ({ videos, loading }) => {
     )
   }
 
+  // 获取视频唯一标识符
+  const getVideoKey = (video: VideoItem, index: number): string => {
+    return video.bvid || video.id || `video-${index}`
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
       {videos.map((video, index) => (
-        <VideoCard key={video.bvid} video={video} index={index} />
+        <VideoCard key={getVideoKey(video, index)} video={video} index={index} />
       ))}
       {/* 加载更多骨架屏 */}
       {loading && videos.length > 0 && (

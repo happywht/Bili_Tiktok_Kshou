@@ -26,4 +26,31 @@ apiClient.interceptors.response.use(
   }
 )
 
+// 创建长超时客户端（抖音/小红书浏览器自动化需要）
+export function createLongTimeoutClient(timeout = 180000) {
+  const client = axios.create({
+    baseURL: import.meta.env.VITE_API_URL || '/api/v1',
+    timeout,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+  client.interceptors.request.use(
+    (config) => config,
+    (error) => Promise.reject(error)
+  )
+
+  client.interceptors.response.use(
+    (response) => response.data,
+    (error) => {
+      const message = error.response?.data?.message || error.message || '网络请求失败'
+      console.error('API Error:', message)
+      return Promise.reject(error)
+    }
+  )
+
+  return client
+}
+
 export default apiClient

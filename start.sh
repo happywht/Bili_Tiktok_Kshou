@@ -1,8 +1,10 @@
 #!/bin/bash
 
 echo "========================================"
-echo "  VideoHub - B站视频搜索平台"
+echo "  VideoHub - 多平台视频搜索"
 echo "========================================"
+echo
+echo "  支持平台: B站 | 抖音 | 小红书"
 echo
 
 # 检查Python
@@ -11,12 +13,15 @@ if ! command -v python3 &> /dev/null; then
     exit 1
 fi
 
-# 检查Node.js
+# 检查Node.js（可选）
+SKIP_FRONTEND=0
 if ! command -v node &> /dev/null; then
-    echo "[错误] 未找到Node.js，请先安装Node.js 18+"
-    exit 1
+    echo "[警告] 未找到Node.js，将跳过前端启动"
+    echo "        如需前端界面，请安装Node.js 18+"
+    SKIP_FRONTEND=1
 fi
 
+echo
 echo "[1/4] 检查后端依赖..."
 if ! pip show fastapi &> /dev/null; then
     echo "正在安装后端依赖..."
@@ -24,18 +29,44 @@ if ! pip show fastapi &> /dev/null; then
 fi
 
 echo
-echo "[2/4] 检查前端依赖..."
-if [ ! -d "web/node_modules" ]; then
-    echo "正在安装前端依赖..."
-    cd web && npm install && cd ..
+echo "[1.5/4] 检查 Playwright 浏览器..."
+python3 -c "from playwright.sync_api import sync_playwright; p=sync_playwright().start(); b=p.chromium.launch(headless=True); b.close(); p.stop()" 2>/dev/null
+if [ $? -ne 0 ]; then
+    echo "正在安装 Playwright Chromium 浏览器..."
+    playwright install chromium
 fi
 
 echo
-echo "[3/4] 检查环境配置..."
+echo "[2/4] 检查环境配置..."
 if [ ! -f ".env" ]; then
-    echo "[警告] 未找到.env文件，请确保已配置BILIBILI_SESSDATA"
-    echo "请复制.env.example为.env并填入你的SESSDATA"
-    cp .env.example .env
+    echo "[警告] 未找到.env文件"
+    if [ -f ".env.example" ]; then
+        cp .env.example .env
+        echo "已创建.env文件，请配置以下参数:"
+        echo "  - BILIBILI_SESSDATA  (B站Cookie)"
+        echo "  - MEDIACRAWLER_HEADLESS=false  (首次使用抖音/小红书需设为false扫码登录)"
+    fi
+else
+    echo ".env 文件已存在"
+fi
+
+# 检查 MediaCrawler 是否已克隆
+if [ ! -f "tools/MediaCrawler/main.py" ]; then
+    echo
+    echo "[警告] 未找到 MediaCrawler，正在克隆..."
+    git clone --depth 1 https://github.com/NanmiCoder/MediaCrawler.git tools/MediaCrawler
+    if [ $? -ne 0 ]; then
+        echo "[错误] MediaCrawler 克隆失败，抖音和小红书搜索将不可用"
+        echo "请手动执行: git clone --depth 1 https://github.com/NanmiCoder/MediaCrawler.git tools/MediaCrawler"
+    fi
+fi
+
+echo
+echo "[3/4] 检查抖音/小红书环境..."
+if python3 tools/mediacrawler_bridge.py --check 2>/dev/null; then
+    echo "抖音/小红书搜索环境就绪"
+else
+    echo "[提示] 抖音/小红书搜索环境未就绪，将在首次使用时自动检查"
 fi
 
 echo
@@ -43,27 +74,54 @@ echo "[4/4] 启动服务..."
 echo
 echo "========================================"
 echo "  后端服务: http://localhost:8000"
-echo "  前端界面: http://localhost:3000"
+echo "  前端界面: http://localhost:5173"
 echo "  API文档:  http://localhost:8000/docs"
 echo "========================================"
 echo
 
+# 设置PYTHONPATH
+export PYTHONPATH=$(pwd)
+
 # 启动后端服务
 echo "正在启动后端服务..."
-uvicorn api.main:app --reload --host 0.0.0.0 --port 8000 &
+python3 -m uvicorn api.main:app --reload --host 0.0.0.0 --port 8000 &
 API_PID=$!
 
 sleep 3
 
-# 启动前端服务
-echo "正在启动前端服务..."
-cd web && npm run dev &
-WEB_PID=$!
+# 启动前端（如果Node.js可用）
+if [ "$SKIP_FRONTEND" -eq 0 ]; then
+    if [ -d "web/node_modules" ]; then
+        echo "正在启动前端服务..."
+        cd web && npm run dev &
+        WEB_PID=$!
+        cd ..
+    else
+        echo "[提示] 前端依赖未安装，正在安装..."
+        cd web && npm install && cd ..
+        echo "正在启动前端服务..."
+        cd web && npm run dev &
+        WEB_PID=$!
+        cd ..
+    fi
+fi
 
-# 等待用户中断
 echo
-echo "服务已启动！请访问 http://localhost:3000"
+echo "========================================"
+echo "  服务已启动！"
+echo "========================================"
+echo
+echo "  使用方式:"
+echo "  1. 浏览器访问 http://localhost:5173"
+echo "  2. 或直接调用API http://localhost:8000/docs"
+echo
+echo "  API示例:"
+echo "  - B站搜索:   /api/v1/search?keyword=Python&platform=bilibili"
+echo "  - 抖音搜索:  /api/v1/search?keyword=Python&platform=douyin"
+echo "  - 小红书搜索: /api/v1/search?keyword=Python&platform=xiaohongshu"
+echo
 echo "按 Ctrl+C 停止所有服务..."
 
+# 等待用户中断
 trap "kill $API_PID $WEB_PID 2>/dev/null; exit 0" INT TERM
 wait

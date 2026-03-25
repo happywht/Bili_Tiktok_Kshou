@@ -1,198 +1,246 @@
-# B站视频搜索平台 - VideoHub
+# VideoHub - 多平台视频搜索 API
 
-一个现代化的多平台视频搜索前端应用，当前支持B站视频搜索，预留抖音、小红书等平台扩展接口。
+一个现代化的多平台视频/内容搜索 API 服务，支持 B站、抖音、小红书等主流平台的内容检索。
 
-## ✨ 功能特性
+## 功能特性
 
-- 🔍 **关键词搜索** - 支持B站视频关键词搜索
-- 📊 **多维度排序** - 综合排序、播放量、发布时间、弹幕数
-- 🎨 **现代化UI** - 深色主题、卡片式布局、流畅动画
-- 📱 **响应式设计** - 完美适配桌面端和移动端
-- 🔄 **无限滚动** - 支持加载更多结果
-- 🌐 **多平台扩展** - 预留抖音、小红书平台接口
+- **多平台搜索** - 统一 API 接口支持 B站、抖音、小红书
+- **关键词搜索** - 支持关键词搜索、分页、多种排序方式
+- **视频详情** - 获取视频详细信息、统计数据
+- **视频总结** - B站视频字幕预览和总结
+- **图片代理** - 绕过防盗链，支持跨域图片访问
+- **统一错误处理** - 友好的错误信息和解决建议
+- **Swagger 文档** - 自动生成的 API 文档
 
-## 🛠 技术栈
+## 支持的平台
 
-### 后端
-- **FastAPI** - 高性能Python Web框架
-- **Pydantic** - 数据验证和序列化
-- **Requests** - HTTP请求库
+| 平台 | 标识 | 状态 | 功能支持 |
+|------|------|------|----------|
+| B站 (哔哩哔哩) | `bilibili` | 可用 | 搜索、详情、总结 |
+| 抖音 | `douyin` | 可用 | 搜索 |
+| 小红书 | `xiaohongshu` | 即将支持 | - |
 
-### 前端
-- **React 18** - 现代化UI框架
-- **TypeScript** - 类型安全
-- **Vite** - 快速构建工具
-- **Tailwind CSS** - 原子化CSS框架
-- **Zustand** - 轻量级状态管理
-- **Axios** - HTTP客户端
-- **Lucide Icons** - 精美图标库
+## 快速开始
 
-## 📁 项目结构
+### 环境要求
 
-```
-bilibili_search/
-├── api/                    # 后端API服务
-│   ├── main.py            # FastAPI应用入口
-│   ├── config.py          # 配置管理
-│   ├── models/            # 数据模型
-│   ├── routers/           # 路由
-│   ├── services/          # 业务逻辑
-│   └── middleware/        # 中间件
-│
-├── web/                    # 前端应用
-│   ├── src/
-│   │   ├── api/           # API调用
-│   │   ├── components/    # UI组件
-│   │   ├── pages/         # 页面
-│   │   ├── store/         # 状态管理
-│   │   ├── types/         # 类型定义
-│   │   └── utils/         # 工具函数
-│   └── ...
-│
-├── bilibili_search.py      # 原有搜索核心
-├── bilibili_cli.py         # CLI工具
-└── requirements.txt        # Python依赖
-```
+- Python 3.8+
+- pip 或 conda
 
-## 🚀 快速开始
-
-### 1. 环境准备
+### 安装
 
 ```bash
 # 克隆项目
+git clone <repository-url>
 cd bilibili_search
 
-# 安装后端依赖
+# 安装依赖
 pip install -r requirements.txt
-
-# 安装前端依赖
-cd web
-npm install
 ```
 
-### 2. 配置SESSDATA
+### 配置
 
-B站搜索API需要登录Cookie，按以下步骤获取：
-
-1. 浏览器打开 https://www.bilibili.com 并登录
-2. 按F12打开开发者工具
-3. Application → Cookies → bilibili.com
-4. 复制 `SESSDATA` 的值
-
-创建 `.env` 文件：
+1. 复制环境变量模板
 ```bash
 cp .env.example .env
-# 编辑 .env 文件，填入你的 SESSDATA
 ```
 
-### 3. 启动服务
+2. 编辑 `.env` 文件，配置平台 Cookie（详见 [配置文档](docs/CONFIGURATION.md)）
 
-**启动后端API (端口8000)**
+```env
+# B站配置（必需）
+BILIBILI_SESSDATA=your_sessdata_here
+
+# 抖音配置（可选）
+DOUYIN_COOKIES=your_cookies_here
+```
+
+### 运行
+
 ```bash
-# 在项目根目录
+# 开发模式（支持热重载）
 uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-**启动前端开发服务器 (端口3000)**
-```bash
-# 在 web/ 目录
-npm run dev
-```
-
-### 4. 访问应用
-
-- **前端界面**: http://localhost:3000
-- **API文档**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-
-## 📖 API接口
-
-### 搜索视频
-```
-GET /api/v1/search?keyword=Python&page=1&page_size=20&order=totalrank
-```
-
-### 获取视频详情
-```
-GET /api/v1/videos/{bvid}
-```
-
-### 获取视频总结
-```
-GET /api/v1/videos/{bvid}/summary
-```
-
-### 健康检查
-```
-GET /api/v1/health
-```
-
-### 平台列表
-```
-GET /api/v1/platforms
-```
-
-## 🎨 扩展新平台
-
-项目采用**平台适配器模式**，添加新平台只需：
-
-### 1. 创建适配器 (后端)
-
-```python
-# api/services/douyin_service.py
-class DouyinService:
-    def search_videos(self, keyword, page, page_size, order):
-        # 实现抖音搜索逻辑
-        pass
-```
-
-### 2. 添加路由
-
-```python
-# api/routers/search.py
-if platform == "douyin":
-    videos = douyin_service.search_videos(...)
-```
-
-### 3. 更新前端
-
-```typescript
-// web/src/store/searchStore.ts
-platforms: [
-  { id: 'douyin', name: '抖音', icon: '🎵', status: 'available', ... },
-  // ...
-]
-```
-
-## 🔧 开发指南
-
-### 前端开发
-```bash
-cd web
-npm run dev      # 启动开发服务器
-npm run build    # 构建生产版本
-npm run preview  # 预览生产版本
-```
-
-### 后端开发
-```bash
-# 开发模式（热重载）
-uvicorn api.main:app --reload
 
 # 生产模式
 uvicorn api.main:app --host 0.0.0.0 --port 8000 --workers 4
+
+# 或直接运行
+python api/main.py
 ```
 
-## 📝 注意事项
+### 访问
 
-1. **SESSDATA有效期** - B站Cookie会过期，需要定期更新
-2. **API限流** - B站有频率限制，建议添加请求延时
-3. **搜索结果** - 最多返回约1000条结果
+- **API 服务**: http://localhost:8000
+- **Swagger 文档**: http://localhost:8000/docs
+- **ReDoc 文档**: http://localhost:8000/redoc
 
-## 📄 许可证
+## 环境变量配置
+
+| 变量名 | 说明 | 必需 | 默认值 |
+|--------|------|------|--------|
+| `BILIBILI_SESSDATA` | B站登录 Cookie | 是（B站搜索） | - |
+| `DOUYIN_COOKIES` | 抖音完整 Cookie | 否 | - |
+| `DOUYIN_TTWID` | 抖音 ttwid | 否 | - |
+| `XIAOHONGSHU_COOKIES` | 小红书 Cookie | 否 | - |
+| `DEBUG` | 调试模式 | 否 | false |
+| `API_PREFIX` | API 路由前缀 | 否 | /api/v1 |
+| `CORS_ORIGINS` | CORS 允许源 | 否 | * |
+
+详细的 Cookie 获取方法请参考 [配置文档](docs/CONFIGURATION.md)。
+
+## API 端点概览
+
+### 平台信息
+
+```
+GET /api/v1/platforms
+```
+获取支持的平台列表及状态。
+
+### 多平台搜索
+
+```
+GET /api/v1/search?keyword=Python&platform=bilibili&page=1&page_size=20
+```
+统一的多平台搜索接口。
+
+### B站搜索
+
+```
+GET /api/v1/search/bilibili?keyword=Python&order=totalrank
+```
+B站专用搜索接口，支持排序：`totalrank`(综合)、`click`(播放量)、`pubdate`(发布时间)、`dm`(弹幕数)。
+
+### 抖音搜索
+
+```
+GET /api/v1/search/douyin?keyword=Python&sort_type=0
+```
+抖音搜索接口，排序：`0`(综合)、`1`(最多点赞)、`2`(最新)。
+
+### 视频详情（B站）
+
+```
+GET /api/v1/videos/{bvid}
+```
+获取 B站视频详情。
+
+### 视频总结（B站）
+
+```
+GET /api/v1/videos/{bvid}/summary
+```
+获取 B站视频总结和字幕预览。
+
+### 图片代理
+
+```
+GET /api/v1/proxy-image?url=<encoded_url>
+```
+代理图片请求，绕过防盗链。
+
+### 健康检查
+
+```
+GET /api/v1/health
+```
+服务健康状态检查。
+
+完整的 API 文档请参考 [API 文档](docs/API.md)。
+
+## 项目结构
+
+```
+bilibili_search/
+├── api/                        # 后端 API 服务
+│   ├── main.py                 # FastAPI 应用入口
+│   ├── config.py               # 配置管理
+│   ├── exceptions.py           # 异常定义
+│   ├── models/
+│   │   └── schemas.py          # Pydantic 数据模型
+│   ├── routers/
+│   │   ├── search.py           # 搜索路由
+│   │   └── videos.py           # 视频详情路由
+│   ├── services/
+│   │   ├── base.py             # 服务基类
+│   │   ├── bilibili_service.py # B站服务
+│   │   ├── douyin_service.py   # 抖音服务
+│   │   └── xiaohongshu_service.py
+│   └── middleware/
+│       ├── cors.py             # CORS 中间件
+│       └── error_handler.py    # 错误处理中间件
+│
+├── docs/                       # 文档目录
+│   ├── API.md                  # API 详细文档
+│   ├── CONFIGURATION.md        # 配置说明
+│   └── TROUBLESHOOTING.md      # 故障排除
+│
+├── tests/                      # 测试目录
+├── web/                        # 前端应用（可选）
+├── .env.example                # 环境变量模板
+├── requirements.txt            # Python 依赖
+└── README.md                   # 项目说明
+```
+
+## 技术栈
+
+- **FastAPI** - 高性能 Python Web 框架
+- **Pydantic** - 数据验证和序列化
+- **Uvicorn** - ASGI 服务器
+- **httpx** - 异步 HTTP 客户端
+- **Requests** - HTTP 请求库
+
+## 常见问题
+
+### Q: 搜索返回 "登录状态已过期"
+
+Cookie 已过期，需要重新获取。参考 [配置文档](docs/CONFIGURATION.md) 更新对应平台的 Cookie。
+
+### Q: 搜索返回 "请求过于频繁"
+
+触发了平台的频率限制，请降低请求频率，建议每次请求间隔 1-2 秒。
+
+### Q: B站搜索无结果
+
+1. 检查 `BILIBILI_SESSDATA` 是否正确配置
+2. 确认 Cookie 未过期（B站 Cookie 有效期约 30 天）
+3. 检查关键词是否有效
+
+### Q: 抖音搜索需要验证码
+
+抖音有较强的反爬机制，遇到验证码时需要：
+1. 在浏览器中手动完成验证
+2. 更新 Cookie 后重试
+
+更多问题请参考 [故障排除指南](docs/TROUBLESHOOTING.md)。
+
+## 开发指南
+
+### 运行测试
+
+```bash
+pytest tests/
+```
+
+### 代码风格
+
+项目使用 Python 标准代码风格，建议使用 `black` 和 `isort` 格式化代码。
+
+### 添加新平台
+
+1. 在 `api/services/` 创建新的服务类，继承 `BasePlatformService`
+2. 在 `api/services/factory.py` 注册新平台
+3. 在 `api/routers/search.py` 添加路由支持
+4. 更新文档
+
+## 许可证
 
 MIT License
 
-## 🤝 贡献
+## 贡献
 
 欢迎提交 Issue 和 Pull Request！
+
+---
+
+**文档导航**: [API 文档](docs/API.md) | [配置说明](docs/CONFIGURATION.md) | [故障排除](docs/TROUBLESHOOTING.md)

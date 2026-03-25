@@ -3,12 +3,15 @@ import { SlidersHorizontal, RotateCcw } from 'lucide-react'
 import { Select } from '@/components/ui/Select'
 import { Button } from '@/components/ui/Button'
 import { useSearchStore } from '@/store/searchStore'
-import { SORT_OPTIONS } from '@/types/video'
+import { SORT_OPTIONS, DOUYIN_SORT_OPTIONS } from '@/types/video'
 
 export const SearchFilters: React.FC = () => {
-  const { sortBy, setSortBy, videos, reset } = useSearchStore()
+  const { sortBy, setSortBy, videos, reset, currentPlatform } = useSearchStore()
 
   if (videos.length === 0) return null
+
+  // 根据平台选择排序选项
+  const sortOptions = currentPlatform === 'douyin' ? DOUYIN_SORT_OPTIONS : SORT_OPTIONS
 
   return (
     <div className="flex flex-wrap items-center gap-3 p-4 bg-secondary/30
@@ -22,7 +25,7 @@ export const SearchFilters: React.FC = () => {
       <Select
         value={sortBy}
         onChange={(e) => setSortBy(e.target.value)}
-        options={SORT_OPTIONS}
+        options={sortOptions}
         className="w-32"
       />
 

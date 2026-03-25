@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { VideoItem, SearchParams, Platform, PlatformConfig, SORT_OPTIONS } from '@/types/video'
+import { VideoItem, SearchParams, Platform, PlatformConfig, SORT_OPTIONS, ContentItem } from '@/types/video'
 import { searchApi } from '@/api/search'
 
 interface SearchState {
@@ -40,8 +40,8 @@ const initialState = {
   currentPlatform: 'bilibili' as Platform,
   platforms: [
     { id: 'bilibili', name: 'B站', icon: '📺', status: 'available', features: ['search', 'detail', 'summary'] },
-    { id: 'douyin', name: '抖音', icon: '🎵', status: 'coming_soon', features: [] },
-    { id: 'xiaohongshu', name: '小红书', icon: '📕', status: 'coming_soon', features: [] },
+    { id: 'douyin', name: '抖音', icon: '🎵', status: 'available', features: ['search'] },
+    { id: 'xiaohongshu', name: '小红书', icon: '📕', status: 'available', features: ['search'] },
   ],
 }
 
@@ -91,7 +91,33 @@ export const useSearchStore = create<SearchState>((set, get) => ({
       })
 
       if (response.success) {
-        const newVideos = response.data.videos
+        // 处理不同平台的响应格式
+        let newVideos: VideoItem[] = []
+
+        if (response.data.videos) {
+          // B站格式
+          newVideos = response.data.videos
+        } else if (response.data.items) {
+          // 通用内容格式（抖音、小红书等）
+          newVideos = response.data.items.map((item: ContentItem) => ({
+            bvid: item.id,
+            title: item.title,
+            description: item.description,
+            author: item.author,
+            author_id: item.author_id,
+            play_count: item.stats.play_count,
+            like_count: item.stats.like_count,
+            comment_count: item.stats.comment_count,
+            share_count: item.stats.share_count,
+            duration: item.duration,
+            pubdate: item.publish_time,
+            cover_url: item.cover_url,
+            video_url: item.url,
+            tags: item.tags,
+            platform: item.platform,
+          }))
+        }
+
         set({
           videos: params?.page && params.page > 1 ? [...state.videos, ...newVideos] : newVideos,
           currentPage: response.pagination.page,

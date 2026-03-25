@@ -109,6 +109,55 @@ class SearchData(BaseModel):
     videos: List[VideoItem]
 
 
+# ============ 通用内容模型（多平台） ============
+
+class ContentStats(BaseModel):
+    """通用内容统计数据"""
+    play_count: int = 0
+    like_count: int = 0
+    comment_count: int = 0
+    share_count: int = 0
+    collect_count: int = 0
+
+
+class ContentItem(BaseModel):
+    """通用内容项（支持多平台）"""
+    id: str = Field(..., description="内容ID")
+    title: str
+    description: str = ""
+    author: str
+    author_id: str = ""
+    cover_url: str = ""
+    url: str
+    platform: str = Field(..., description="平台标识: bilibili, douyin, xiaohongshu")
+    # 统计数据
+    stats: ContentStats = ContentStats()
+    # 元数据
+    tags: List[str] = []
+    publish_time: str = ""
+    duration: str = ""
+    content_type: str = Field("video", description="内容类型: video, note, article")
+
+
+class MultiSearchData(BaseModel):
+    """多平台搜索结果数据"""
+    items: List[ContentItem]
+    platform: str
+
+
+class PlatformInfo(BaseModel):
+    """平台信息"""
+    id: str
+    name: str
+    available: bool
+    icon: Optional[str] = None
+
+
+class PlatformsData(BaseModel):
+    """平台列表数据"""
+    platforms: List[PlatformInfo]
+
+
 # ============ 请求参数模型 ============
 
 class SearchParams(BaseModel):

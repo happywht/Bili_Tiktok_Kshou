@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Play, Heart, Eye, Clock, User, ImageOff } from 'lucide-react'
+import { Play, Heart, Eye, Clock, User, ImageOff, MessageCircle, Share2 } from 'lucide-react'
 import { VideoItem } from '@/types/video'
 import { formatCount, formatDuration, formatDate } from '@/utils/format'
 import { cn } from '@/lib/utils'
@@ -9,12 +9,21 @@ interface VideoCardProps {
   index: number
 }
 
+// 平台配置
+const PLATFORM_CONFIG = {
+  bilibili: { name: 'B站', color: 'bg-pink-500', icon: '📺' },
+  douyin: { name: '抖音', color: 'bg-black', icon: '🎵' },
+  xiaohongshu: { name: '小红书', color: 'bg-red-500', icon: '📕' },
+}
+
 // 获取代理后的图片URL（绕过防盗链）
-function getProxiedImageUrl(url: string): string {
+function getProxiedImageUrl(url: string, platform?: string): string {
   if (!url) return ''
   // 如果已经是代理URL，直接返回
   if (url.includes('/proxy-image')) return url
-  // 使用后端代理（vite 已配置 /api 代理到后端）
+  // 抖音和小红书的 CDN 图片可以直接加载（设置 referrerpolicy）
+  // B站图片需要代理
+  if (platform === 'douyin' || platform === 'xiaohongshu') return url
   return `/api/v1/proxy-image?url=${encodeURIComponent(url)}`
 }
 
@@ -22,11 +31,18 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, index }) => {
   const [imageError, setImageError] = useState(false)
   const [imageLoading, setImageLoading] = useState(true)
 
-  // 使用video_url或根据bvid构建链接
-  const videoUrl = video.video_url || `https://www.bilibili.com/video/${video.bvid}`
+  // 获取平台信息
+  const platform = video.platform || 'bilibili'
+  const platformConfig = PLATFORM_CONFIG[platform as keyof typeof PLATFORM_CONFIG] || PLATFORM_CONFIG.bilibili
+
+  // 使用video_url或根据平台构建链接
+  const videoUrl = video.video_url || video.url ||
+    (platform === 'bilibili' ? `https://www.bilibili.com/video/${video.bvid}` :
+     platform === 'douyin' ? `https://www.douyin.com/video/${video.id || video.bvid}` : '#')
+
   // 使用代理后的封面URL
   const rawCoverUrl = video.cover_url || ''
-  const coverUrl = rawCoverUrl ? getProxiedImageUrl(rawCoverUrl) : ''
+  const coverUrl = rawCoverUrl ? getProxiedImageUrl(rawCoverUrl, platform) : ''
   const showImage = coverUrl && !imageError
 
   return (
@@ -53,6 +69,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, index }) => {
             <img
               src={coverUrl}
               alt={video.title}
+              referrerPolicy={platform === 'douyin' || platform === 'xiaohongshu' ? 'no-referrer' : undefined}
               className={cn(
                 "w-full h-full object-cover group-hover:scale-105 transition-transform duration-500",
                 imageLoading && "opacity-0",
@@ -77,6 +94,14 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, index }) => {
         )}
         {/* 渐变遮罩 */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        {/* 平台标识 */}
+        <span className={cn(
+          "absolute top-2 left-2 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1",
+          platformConfig.color
+        )}>
+          <span>{platformConfig.icon}</span>
+          <span>{platformConfig.name}</span>
+        </span>
         {/* 时长标签 */}
         {video.duration && (
           <span className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-0.5 rounded flex items-center gap-1">
@@ -109,7 +134,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, index }) => {
           )}
         </div>
 
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
           <span className="flex items-center gap-1">
             <Eye className="h-3 w-3" />
             {formatCount(video.play_count || 0)}
@@ -118,6 +143,18 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, index }) => {
             <Heart className="h-3 w-3 text-pink-500" />
             {formatCount(video.like_count || 0)}
           </span>
+          {video.comment_count !== undefined && video.comment_count > 0 && (
+            <span className="flex items-center gap-1">
+              <MessageCircle className="h-3 w-3" />
+              {formatCount(video.comment_count)}
+            </span>
+          )}
+          {video.share_count !== undefined && video.share_count > 0 && (
+            <span className="flex items-center gap-1">
+              <Share2 className="h-3 w-3" />
+              {formatCount(video.share_count)}
+            </span>
+          )}
         </div>
 
         {/* 标签 */}
