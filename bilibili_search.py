@@ -41,21 +41,11 @@ class BilibiliSearchAgent:
         self.results: List[BilibiliVideo] = []
         self.session = requests.Session()
 
-        # 设置请求头 - 模拟完整浏览器特征
+        # 设置请求头 - 只保留最基本的，避免 Windows 上的 Invalid argument 错误
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
             'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-            'Accept-Encoding': 'gzip, deflate, br',
             'Referer': 'https://www.bilibili.com/',
-            'Origin': 'https://www.bilibili.com',
-            'Connection': 'keep-alive',
-            'Sec-Ch-Ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
-            'Sec-Ch-Ua-Mobile': '?0',
-            'Sec-Ch-Ua-Platform': '"Windows"',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-site',
         })
 
         # 设置Cookie
@@ -87,7 +77,6 @@ class BilibiliSearchAgent:
                 'page': page,
                 'page_size': page_size,
                 'order': order,
-                'Owebkit': 'true',
             }
 
             response = self.session.get(url, params=params, timeout=30)
