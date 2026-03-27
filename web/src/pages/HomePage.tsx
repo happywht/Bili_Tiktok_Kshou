@@ -1,7 +1,9 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Search, Sparkles } from 'lucide-react'
 import { SearchBar } from '@/components/search/SearchBar'
 import { useSearchStore } from '@/store/searchStore'
+import { Button } from '@/components/ui/Button'
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate()
@@ -34,8 +36,29 @@ const HomePage: React.FC = () => {
         <SearchBar />
       </div>
 
+      {/* 快捷功能 */}
+      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in" style={{ animationDelay: '200ms' }}>
+        <Button
+          size="lg"
+          onClick={() => navigate('/search')}
+          className="w-full sm:w-auto"
+        >
+          <Search className="mr-2 h-5 w-5" />
+          视频搜索
+        </Button>
+        <Button
+          size="lg"
+          variant="outline"
+          onClick={() => navigate('/summarize')}
+          className="w-full sm:w-auto"
+        >
+          <Sparkles className="mr-2 h-5 w-5" />
+          AI 视频总结
+        </Button>
+      </div>
+
       {/* 热门搜索 */}
-      <div className="mt-8 text-center animate-fade-in" style={{ animationDelay: '200ms' }}>
+      <div className="mt-8 text-center animate-fade-in" style={{ animationDelay: '300ms' }}>
         <p className="text-sm text-muted-foreground mb-3">热门搜索</p>
         <div className="flex flex-wrap justify-center gap-2">
           {['Python教程', '原神', '编程', '美食', '旅行', '音乐'].map((tag) => (
@@ -55,20 +78,18 @@ const HomePage: React.FC = () => {
       </div>
 
       {/* 平台图标 */}
-      <div className="mt-16 flex items-center gap-8 text-muted-foreground/50 animate-fade-in" style={{ animationDelay: '300ms' }}>
+      <div className="mt-16 flex items-center gap-8 text-muted-foreground/50 animate-fade-in" style={{ animationDelay: '400ms' }}>
         <div className="flex items-center gap-2">
           <span className="text-2xl">📺</span>
           <span className="text-sm">B站</span>
         </div>
-        <div className="flex items-center gap-2 opacity-50">
+        <div className="flex items-center gap-2">
           <span className="text-2xl">🎵</span>
           <span className="text-sm">抖音</span>
-          <span className="text-xs bg-muted px-1.5 py-0.5 rounded">即将支持</span>
         </div>
-        <div className="flex items-center gap-2 opacity-50">
+        <div className="flex items-center gap-2">
           <span className="text-2xl">📕</span>
           <span className="text-sm">小红书</span>
-          <span className="text-xs bg-muted px-1.5 py-0.5 rounded">即将支持</span>
         </div>
       </div>
     </div>
