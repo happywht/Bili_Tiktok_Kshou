@@ -26,6 +26,12 @@ import argparse
 import traceback
 from datetime import datetime
 
+# 设置 UTF-8 编码（解决 Windows GBK 编码问题）
+if sys.platform == "win32":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
 
 def setup_mocks():
     """预创建 mock 模块，避免导入不必要的重依赖（SQLAlchemy、OpenCV 等）"""

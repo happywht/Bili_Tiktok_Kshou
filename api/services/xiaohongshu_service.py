@@ -145,6 +145,18 @@ class XiaohongshuService(PlatformService):
         items = data.get('data', [])
         logger.info(f"[XiaohongshuService] 搜索完成，获取 {len(items)} 条结果")
 
+        # 检查结果是否为空（可能未登录）
+        if len(items) == 0:
+            # 检查 stderr 中是否有登录提示
+            stderr_lower = (stderr or "").lower()
+            if "login" in stderr_lower or "登录" in stderr_lower or "扫码" in stderr_lower or "cookie" in stderr_lower:
+                raise RuntimeError(
+                    "小红书搜索返回空结果。可能原因：\n"
+                    "1. 未登录：首次使用需要在 --no-headless 模式下扫码登录\n"
+                    "2. 登录已过期：请重新登录\n"
+                    "3. 搜索关键词无结果"
+                )
+
         return [self._to_content_item(item) for item in items]
 
     def _to_content_item(self, item: Dict) -> ContentItem:
