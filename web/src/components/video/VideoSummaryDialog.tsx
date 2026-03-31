@@ -79,7 +79,7 @@ export const VideoSummaryDialog: React.FC<VideoSummaryDialogProps> = ({
               type="text"
               value={inputUrl}
               onChange={(e) => setInputUrl(e.target.value)}
-              placeholder="输入视频URL（B站/抖音/小红书）..."
+              placeholder="输入B站视频URL..."
               className="flex-1 px-3 py-2 text-sm rounded-lg border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
               onKeyDown={(e) => e.key === 'Enter' && handleSummarize()}
             />

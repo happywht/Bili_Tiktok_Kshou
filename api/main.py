@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 try:
     # 作为包运行（uvicorn）
     from .config import settings
-    from .routers import search, videos
+    from .routers import search, videos, summary
     from .middleware.cors import setup_cors
     from .middleware.error_handler import setup_error_handlers
     from .models.schemas import ApiResponse, ErrorInfo
@@ -45,7 +45,7 @@ try:
 except ImportError:
     # 直接运行（python api/main.py）
     from api.config import settings
-    from api.routers import search, videos
+    from api.routers import search, videos, summary
     from api.middleware.cors import setup_cors
     from api.middleware.error_handler import setup_error_handlers
     from api.models.schemas import ApiResponse, ErrorInfo
@@ -62,11 +62,10 @@ app = FastAPI(
 - 视频搜索（关键词、分页、排序）
 - 视频详情获取
 - 视频总结（含字幕预览）
+- 综合视频推送（多关键词整合Markdown）
 
 平台支持：
 - B站 (bilibili)
-- 抖音 (douyin)
-- 小红书 (xiaohongshu)
 
 ## 错误响应格式
 
@@ -106,6 +105,7 @@ setup_error_handlers(app)
 # 注册路由
 app.include_router(search.router, prefix=settings.API_PREFIX, tags=["搜索"])
 app.include_router(videos.router, prefix=settings.API_PREFIX, tags=["视频"])
+app.include_router(summary.router, prefix=settings.API_PREFIX, tags=["AI总结"])
 
 
 # ============ 路由 ============
@@ -158,21 +158,7 @@ async def get_platforms():
                     "name": "B站",
                     "icon": "📺",
                     "status": "available",
-                    "features": ["search", "detail", "summary"]
-                },
-                {
-                    "id": "douyin",
-                    "name": "抖音",
-                    "icon": "🎵",
-                    "status": "available",
-                    "features": ["search"]
-                },
-                {
-                    "id": "xiaohongshu",
-                    "name": "小红书",
-                    "icon": "📕",
-                    "status": "coming_soon",
-                    "features": []
+                    "features": ["search", "detail", "summary", "digest"]
                 }
             ]
         }
@@ -196,7 +182,7 @@ async def startup_event():
 ║   ReDoc:   http://localhost:8000/redoc
 ║                                                            ║
 ║   提示: 配置 BILIBILI_SESSDATA 环境变量以启用搜索功能
-║   提示: 配置 DOUYIN_COOKIE 环境变量以启用抖音搜索
+║   提示: 配置 LLM_API_KEY 环境变量以启用AI总结功能
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
 """

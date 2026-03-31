@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Sparkles } from 'lucide-react'
+import { Search, Sparkles, FileText } from 'lucide-react'
 import { SearchBar } from '@/components/search/SearchBar'
 import { useSearchStore } from '@/store/searchStore'
 import { Button } from '@/components/ui/Button'
@@ -24,10 +24,10 @@ const HomePage: React.FC = () => {
           <span className="gradient-text">VideoHub</span>
         </h1>
         <p className="text-xl text-muted-foreground mb-2">
-          多平台视频搜索聚合
+          B站视频搜索与AI总结
         </p>
         <p className="text-sm text-muted-foreground">
-          一站式搜索 B站、抖音、小红书 等平台视频内容
+          搜索B站视频、AI内容总结、综合视频推送
         </p>
       </div>
 
@@ -37,7 +37,7 @@ const HomePage: React.FC = () => {
       </div>
 
       {/* 快捷功能 */}
-      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in" style={{ animationDelay: '200ms' }}>
+      <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-in" style={{ animationDelay: '200ms' }}>
         <Button
           size="lg"
           onClick={() => navigate('/search')}
@@ -45,6 +45,15 @@ const HomePage: React.FC = () => {
         >
           <Search className="mr-2 h-5 w-5" />
           视频搜索
+        </Button>
+        <Button
+          size="lg"
+          variant="outline"
+          onClick={() => navigate('/digest')}
+          className="w-full sm:w-auto"
+        >
+          <FileText className="mr-2 h-5 w-5" />
+          视频推送
         </Button>
         <Button
           size="lg"
@@ -82,14 +91,6 @@ const HomePage: React.FC = () => {
         <div className="flex items-center gap-2">
           <span className="text-2xl">📺</span>
           <span className="text-sm">B站</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">🎵</span>
-          <span className="text-sm">抖音</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">📕</span>
-          <span className="text-sm">小红书</span>
         </div>
       </div>
     </div>

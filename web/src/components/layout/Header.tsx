@@ -1,5 +1,5 @@
 import React from 'react'
-import { Search, Sparkles, Home } from 'lucide-react'
+import { Search, Sparkles, Home, FileText } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { PlatformSelector } from './PlatformSelector'
 import { cn } from '@/lib/utils'
@@ -44,6 +44,18 @@ export const Header: React.FC = () => {
             >
               <Search className="h-4 w-4" />
               视频搜索
+            </NavLink>
+            <NavLink
+              to="/digest"
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-2 text-sm font-medium transition-colors hover:text-foreground',
+                  isActive ? 'text-foreground' : 'text-muted-foreground'
+                )
+              }
+            >
+              <FileText className="h-4 w-4" />
+              视频推送
             </NavLink>
             <NavLink
               to="/summarize"

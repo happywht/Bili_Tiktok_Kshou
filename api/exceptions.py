@@ -80,18 +80,6 @@ class BilibiliCookieExpiredError(CookieExpiredError):
     default_suggestion: str = "请更新BILIBILI_SESSDATA环境变量后重试（参考: https://github.com/your-repo/wiki/bilibili-cookie）"
 
 
-class DouyinCookieExpiredError(CookieExpiredError):
-    """抖音Cookie过期"""
-
-    default_suggestion: str = "请更新DOUYIN_COOKIE环境变量后重试"
-
-
-class XiaohongshuCookieExpiredError(CookieExpiredError):
-    """小红书Cookie过期"""
-
-    default_suggestion: str = "请更新XIAOHONGSHU_COOKIE环境变量后重试"
-
-
 class RateLimitError(PlatformError):
     """速率限制异常"""
 
@@ -142,20 +130,6 @@ class BilibiliNotAvailableError(PlatformNotAvailableError):
 
     default_message: str = "B站服务暂时不可用"
     default_suggestion: str = "请稍后重试，或检查B站服务状态"
-
-
-class DouyinNotAvailableError(PlatformNotAvailableError):
-    """抖音服务不可用"""
-
-    default_message: str = "抖音服务暂时不可用"
-    default_suggestion: str = "抖音平台需要登录态支持，请配置DOUYIN_COOKIE环境变量"
-
-
-class XiaohongshuNotAvailableError(PlatformNotAvailableError):
-    """小红书服务不可用"""
-
-    default_message: str = "小红书服务暂时不可用"
-    default_suggestion: str = "请确保 Playwright 已安装（pip install playwright && playwright install chromium），且已通过扫码完成首次登录"
 
 
 class ContentNotFoundError(PlatformError):
@@ -224,7 +198,7 @@ def create_platform_error(
     根据平台和错误码创建对应的异常
 
     Args:
-        platform: 平台标识 (bilibili, douyin, xiaohongshu)
+        platform: 平台标识 (bilibili)
         error_code: 错误码
         error_message: 错误信息
         original_error: 原始异常
@@ -257,27 +231,10 @@ def create_platform_error(
                 original_error=original_error
             )
 
-    # 抖音错误码映射
-    if platform == "douyin":
-        if error_code in [8, 2154]:
-            return DouyinCookieExpiredError(
-                message="抖音登录状态已过期",
-                original_error=original_error
-            )
-        if error_code == 2151:
-            return RateLimitError(
-                message="抖音请求频率过高",
-                original_error=original_error
-            )
-
     # 通用错误码映射
     if error_code in [401, 403]:
         if platform == "bilibili":
             return BilibiliCookieExpiredError(original_error=original_error)
-        if platform == "douyin":
-            return DouyinCookieExpiredError(original_error=original_error)
-        if platform == "xiaohongshu":
-            return XiaohongshuCookieExpiredError(original_error=original_error)
 
     if error_code == 404:
         return ContentNotFoundError(
@@ -345,16 +302,6 @@ def detect_error_from_response(
                 platform=platform,
                 error_code=code,
                 error_message=response_data.get("message", "未知错误")
-            )
-
-    # 抖音响应格式
-    if platform == "douyin":
-        status_code_inner = response_data.get("status_code", 0)
-        if status_code_inner != 0:
-            return create_platform_error(
-                platform=platform,
-                error_code=status_code_inner,
-                error_message=response_data.get("status_msg", "未知错误")
             )
 
     return None

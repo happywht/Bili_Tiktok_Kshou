@@ -1,12 +1,23 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { SearchBar } from '@/components/search/SearchBar'
 import { SearchFilters } from '@/components/search/SearchFilters'
 import { VideoGrid } from '@/components/video/VideoGrid'
 import { LoadMore } from '@/components/video/LoadMore'
+import { VideoSummaryDialog } from '@/components/video/VideoSummaryDialog'
 import { useSearchStore } from '@/store/searchStore'
+import { VideoItem } from '@/types/video'
 
 const SearchPage: React.FC = () => {
   const { videos, loading, error, keyword, hasMore } = useSearchStore()
+  const [summaryVideo, setSummaryVideo] = useState<VideoItem | null>(null)
+
+  const handleSummarize = (video: VideoItem) => {
+    const videoUrl = video.video_url || video.url ||
+      (video.platform === 'bilibili' ? `https://www.bilibili.com/video/${video.bvid}` : '')
+    if (videoUrl) {
+      setSummaryVideo({ ...video, url: videoUrl })
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -36,10 +47,18 @@ const SearchPage: React.FC = () => {
       )}
 
       {/* 视频网格 */}
-      <VideoGrid videos={videos} loading={loading} />
+      <VideoGrid videos={videos} loading={loading} onSummarize={handleSummarize} />
 
       {/* 加载更多 */}
       <LoadMore />
+
+      {/* AI 总结弹窗 */}
+      <VideoSummaryDialog
+        url={summaryVideo?.url || ''}
+        title={summaryVideo?.title || ''}
+        open={!!summaryVideo}
+        onClose={() => setSummaryVideo(null)}
+      />
     </div>
   )
 }

@@ -4,8 +4,6 @@
 from typing import Dict, Optional, Type
 from .base import PlatformService, PlatformType
 from .bilibili_service import BilibiliService
-from .douyin_service import DouyinService
-from .xiaohongshu_service import XiaohongshuService
 
 
 class ServiceFactory:
@@ -18,8 +16,6 @@ class ServiceFactory:
     # 服务类注册表
     _service_classes: Dict[PlatformType, Type[PlatformService]] = {
         PlatformType.BILIBILI: BilibiliService,
-        PlatformType.DOUYIN: DouyinService,
-        PlatformType.XIAOHONGSHU: XiaohongshuService,
     }
 
     # 服务实例缓存
@@ -92,12 +88,6 @@ class ServiceFactory:
             'bilibili': PlatformType.BILIBILI,
             'bili': PlatformType.BILIBILI,
             'b站': PlatformType.BILIBILI,
-            'douyin': PlatformType.DOUYIN,
-            'tiktok': PlatformType.DOUYIN,
-            '抖音': PlatformType.DOUYIN,
-            'xiaohongshu': PlatformType.XIAOHONGSHU,
-            'red': PlatformType.XIAOHONGSHU,
-            '小红书': PlatformType.XIAOHONGSHU,
         }
 
         if platform not in platform_map:
@@ -116,10 +106,6 @@ class ServiceFactory:
 
         if 'sessdata' in config:
             key_parts.append(f"sessdata:{config['sessdata'][:8]}")
-        if 'cookies' in config:
-            key_parts.append(f"cookies:{hash(config['cookies']) % 10000}")
-        if 'ttwid' in config:
-            key_parts.append(f"ttwid:{config['ttwid'][:8]}")
 
         return ':'.join(key_parts)
 
@@ -133,19 +119,6 @@ class ServiceFactory:
         # 根据不同服务类型传递不同的参数
         if service_class == BilibiliService:
             return BilibiliService(sessdata=config.get('sessdata'))
-
-        elif service_class == DouyinService:
-            return DouyinService(
-                cookies=config.get('cookies'),
-                ttwid=config.get('ttwid'),
-                headless=config.get('headless', True),
-            )
-
-        elif service_class == XiaohongshuService:
-            return XiaohongshuService(
-                cookies=config.get('cookies'),
-                headless=config.get('headless', True),
-            )
 
         # 默认无参创建
         return service_class()
@@ -172,8 +145,6 @@ class ServiceFactory:
         """获取平台显示名称"""
         names = {
             PlatformType.BILIBILI: "哔哩哔哩",
-            PlatformType.DOUYIN: "抖音",
-            PlatformType.XIAOHONGSHU: "小红书",
         }
         return names.get(platform, platform.value)
 
@@ -184,20 +155,4 @@ def get_bilibili_service(sessdata: str = None) -> BilibiliService:
     return ServiceFactory.get_service(
         'bilibili',
         {'sessdata': sessdata}
-    )
-
-
-def get_douyin_service(cookies: str = None, ttwid: str = None) -> DouyinService:
-    """获取抖音服务"""
-    return ServiceFactory.get_service(
-        'douyin',
-        {'cookies': cookies, 'ttwid': ttwid}
-    )
-
-
-def get_xiaohongshu_service(cookies: str = None) -> XiaohongshuService:
-    """获取小红书服务"""
-    return ServiceFactory.get_service(
-        'xiaohongshu',
-        {'cookies': cookies}
     )

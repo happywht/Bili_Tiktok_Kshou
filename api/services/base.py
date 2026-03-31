@@ -14,8 +14,6 @@ logger = logging.getLogger(__name__)
 class PlatformType(str, Enum):
     """支持的平台类型"""
     BILIBILI = "bilibili"
-    DOUYIN = "douyin"
-    XIAOHONGSHU = "xiaohongshu"
 
 
 @dataclass

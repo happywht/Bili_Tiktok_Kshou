@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Play, Heart, Eye, Clock, User, ImageOff, MessageCircle, Share2 } from 'lucide-react'
+import { Play, Heart, Eye, Clock, User, ImageOff, MessageCircle, Share2, Sparkles } from 'lucide-react'
 import { VideoItem } from '@/types/video'
 import { formatCount, formatDuration, formatDate } from '@/utils/format'
 import { cn } from '@/lib/utils'
@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 interface VideoCardProps {
   video: VideoItem
   index: number
+  onSummarize?: (video: VideoItem) => void
 }
 
 // 平台配置
@@ -27,7 +28,7 @@ function getProxiedImageUrl(url: string, platform?: string): string {
   return `/api/v1/proxy-image?url=${encodeURIComponent(url)}`
 }
 
-export const VideoCard: React.FC<VideoCardProps> = ({ video, index }) => {
+export const VideoCard: React.FC<VideoCardProps> = ({ video, index, onSummarize }) => {
   const [imageError, setImageError] = useState(false)
   const [imageLoading, setImageLoading] = useState(true)
 
@@ -111,8 +112,23 @@ export const VideoCard: React.FC<VideoCardProps> = ({ video, index }) => {
         )}
         {/* 悬停播放按钮 */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <div className="w-14 h-14 rounded-full bg-primary/90 flex items-center justify-center shadow-lg shadow-primary/30">
-            <Play className="h-6 w-6 text-white fill-white ml-1" />
+          <div className="flex items-center gap-2">
+            <div className="w-14 h-14 rounded-full bg-primary/90 flex items-center justify-center shadow-lg shadow-primary/30">
+              <Play className="h-6 w-6 text-white fill-white ml-1" />
+            </div>
+            {onSummarize && videoUrl !== '#' && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onSummarize(video)
+                }}
+                className="w-10 h-10 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center transition-colors"
+                title="AI 总结"
+              >
+                <Sparkles className="h-5 w-5 text-white" />
+              </button>
+            )}
           </div>
         </div>
       </div>

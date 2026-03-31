@@ -13,8 +13,24 @@ B站视频搜索 Agent - Cookie版
 import json
 import requests
 import os
+import sys
+import time
 from typing import List, Dict, Optional
 from dataclasses import dataclass, asdict
+from urllib.parse import urlencode
+from hashlib import md5
+
+# 添加 MediaCrawler 路径以导入 BilibiliSign
+MC_PATH = os.path.join(os.path.dirname(__file__), 'tools', 'MediaCrawler')
+if os.path.exists(MC_PATH):
+    sys.path.insert(0, MC_PATH)
+    try:
+        from media_platform.bilibili.help import BilibiliSign
+        HAS_WBI_SIGN = True
+    except ImportError:
+        HAS_WBI_SIGN = False
+else:
+    HAS_WBI_SIGN = False
 
 
 @dataclass
@@ -56,6 +72,45 @@ class BilibiliSearchAgent:
             env_sessdata = os.environ.get('BILIBILI_SESSDATA')
             if env_sessdata:
                 self.session.cookies.set('SESSDATA', env_sessdata, domain='.bilibili.com')
+
+        # 初始化 Wbi 签名（如果可用）
+        self.wbi_sign = None
+        if HAS_WBI_SIGN:
+            try:
+                self._init_wbi_sign()
+            except Exception as e:
+                print(f"[Warning] Wbi 签名初始化失败: {e}")
+
+    def _init_wbi_sign(self):
+        """初始化 Wbi 签名（B站 API 现在需要）"""
+        try:
+            # 从 API 获取最新的 img_key 和 sub_key
+            nav_url = "https://api.bilibili.com/x/web-interface/nav"
+            resp = self.session.get(nav_url, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+
+            if data.get('code') != 0:
+                print(f"[Warning] 无法获取 Wbi 密钥: {data.get('message')}")
+                return
+
+            if not data.get('data') or not data['data'].get('wbi_img'):
+                print(f"[Warning] Wbi 密钥数据格式错误: {data}")
+                return
+
+            wbi_img = data['data']['wbi_img']
+            img_url = wbi_img['img_url']
+            sub_url = wbi_img['sub_url']
+
+            img_key = img_url.rsplit('/', 1)[1].split('.')[0]
+            sub_key = sub_url.rsplit('/', 1)[1].split('.')[0]
+
+            self.wbi_sign = BilibiliSign(img_key, sub_key)
+            print(f"[Info] Wbi 签名初始化成功")
+        except Exception as e:
+            print(f"[Warning] Wbi 签名初始化失败: {e}")
+            import traceback
+            traceback.print_exc()
     
     def search_videos_sync(
         self,
@@ -69,8 +124,10 @@ class BilibiliSearchAgent:
         import random
 
         try:
-            url = "https://api.bilibili.com/x/web-interface/search/type"
-            # 添加更多参数模拟真实请求
+            # 使用 Wbi 签名的 API 路径
+            url = "https://api.bilibili.com/x/web-interface/wbi/search/type"
+
+            # 基础参数
             params = {
                 'keyword': keyword,
                 'search_type': 'video',
@@ -79,10 +136,22 @@ class BilibiliSearchAgent:
                 'order': order,
             }
 
+            # 如果 Wbi 签名可用，添加签名
+            if self.wbi_sign:
+                params = self.wbi_sign.sign(params)
+                print(f"[Debug] 使用 Wbi 签名: {list(params.keys())}")
+            else:
+                print(f"[Debug] 未使用 Wbi 签名")
+
+            print(f"[Debug] 请求 URL: {url}")
+            print(f"[Debug] 请求参数: {params}")
+
             response = self.session.get(url, params=params, timeout=30)
             response.raise_for_status()
             data = response.json()
-            
+
+            print(f"[Debug] API 响应 code: {data.get('code')}")
+
             if data.get('code') != 0:
                 error_msg = data.get('message', '未知错误')
                 if data.get('code') == -412:

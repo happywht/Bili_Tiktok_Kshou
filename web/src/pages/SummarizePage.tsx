@@ -16,11 +16,7 @@ export const SummarizePage: React.FC = () => {
     try {
       const url = new URL(value)
       const hostname = url.hostname
-      return (
-        hostname.includes('bilibili.com') ||
-        hostname.includes('douyin.com') ||
-        hostname.includes('xiaohongshu.com')
-      )
+      return hostname.includes('bilibili.com')
     } catch {
       return false
     }
@@ -28,7 +24,7 @@ export const SummarizePage: React.FC = () => {
 
   const handleSummarize = async () => {
     if (!url.trim() || !isValidUrl(url)) {
-      setError('请输入有效的视频URL（支持B站、抖音、小红书）')
+      setError('请输入有效的B站视频URL')
       return
     }
 
@@ -50,8 +46,8 @@ export const SummarizePage: React.FC = () => {
 
   const exampleUrls = [
     { label: 'B站示例', url: 'https://www.bilibili.com/video/BV1rpWjevEip' },
-    { label: '抖音示例', url: 'https://www.douyin.com/video/7380154625771054386' },
-    { label: '小红书示例', url: 'https://www.xiaohongshu.com/explore/65f8a8e8000000001e03a7e7' },
+    { label: '编程教程', url: 'https://www.bilibili.com/video/BV1et411s7eU' },
+    { label: '技术分享', url: 'https://www.bilibili.com/video/BV1GJ411x7h7' },
   ]
 
   return (
@@ -62,7 +58,7 @@ export const SummarizePage: React.FC = () => {
           AI 视频内容总结
         </h1>
         <p className="text-muted-foreground">
-          输入视频链接，自动提取字幕并生成 AI 内容总结（支持 B站、抖音、小红书）
+          输入B站视频链接，自动提取字幕并生成 AI 内容总结
         </p>
       </div>
 
@@ -71,7 +67,7 @@ export const SummarizePage: React.FC = () => {
         <div className="space-y-4">
           <div className="space-y-2">
             <Input
-              placeholder="粘贴视频链接（例如：https://www.bilibili.com/video/BVxxxxxx）"
+              placeholder="粘贴B站视频链接（例如：https://www.bilibili.com/video/BVxxxxxx）"
               value={url}
               onChange={(e) => {
                 setUrl(e.target.value)
@@ -83,7 +79,7 @@ export const SummarizePage: React.FC = () => {
             {url && !isValidUrl(url) && (
               <p className="text-sm text-destructive flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
-                请输入有效的 B站/抖音/小红书 视频链接
+                请输入有效的B站视频链接
               </p>
             )}
           </div>
@@ -142,8 +138,7 @@ export const SummarizePage: React.FC = () => {
             <h3 className="font-semibold text-foreground mb-2">支持的链接格式：</h3>
             <ul className="space-y-1 ml-4 list-disc">
               <li>B站：<code className="bg-muted px-1 py-0.5 rounded">https://www.bilibili.com/video/BVxxxxxx</code></li>
-              <li>抖音：<code className="bg-muted px-1 py-0.5 rounded">https://www.douyin.com/video/xxxxxx</code></li>
-              <li>小红书：<code className="bg-muted px-1 py-0.5 rounded">https://www.xiaohongshu.com/explore/xxxxxx</code></li>
+              <li>B站短链接：<code className="bg-muted px-1 py-0.5 rounded">https://b23.tv/xxxxxx</code></li>
             </ul>
           </div>
 
@@ -153,6 +148,7 @@ export const SummarizePage: React.FC = () => {
               <li>需要配置智谱AI Key（在 .env 文件中设置 LLM_API_KEY）</li>
               <li>视频需要有字幕/CC字幕才能生成总结</li>
               <li>总结生成需要 15-30 秒，请耐心等待</li>
+              <li>部分视频可能无法提取字幕（如未开启字幕或字幕为视频内嵌）</li>
             </ul>
           </div>
 

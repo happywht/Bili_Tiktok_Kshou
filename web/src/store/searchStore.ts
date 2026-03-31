@@ -40,8 +40,6 @@ const initialState = {
   currentPlatform: 'bilibili' as Platform,
   platforms: [
     { id: 'bilibili', name: 'B站', icon: '📺', status: 'available', features: ['search', 'detail', 'summary'] },
-    { id: 'douyin', name: '抖音', icon: '🎵', status: 'available', features: ['search'] },
-    { id: 'xiaohongshu', name: '小红书', icon: '📕', status: 'available', features: ['search'] },
   ],
 }
 

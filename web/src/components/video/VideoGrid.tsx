@@ -19,7 +19,7 @@ const VideoSkeleton: React.FC = () => (
   </div>
 )
 
-export const VideoGrid: React.FC<VideoGridProps> = ({ videos, loading }) => {
+export const VideoGrid: React.FC<VideoGridProps> = ({ videos, loading, onSummarize }) => {
   // 首次加载骨架屏
   if (loading && videos.length === 0) {
     return (

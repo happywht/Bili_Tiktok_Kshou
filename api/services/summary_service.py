@@ -2,7 +2,7 @@
 AI 视频总结服务
 
 通过 yt-dlp 提取视频字幕，调用 LLM 生成内容总结。
-支持 B站/抖音/小红书视频 URL。
+支持 B站视频 URL。
 """
 import json
 import re
@@ -21,15 +21,6 @@ PLATFORM_PATTERNS = {
         r'bilibili\.com/video/',
         r'b23\.tv/',
         r'BV[a-zA-Z0-9]+',
-    ],
-    'douyin': [
-        r'douyin\.com/video/',
-        r'iesdouyin\.com/share/video/',
-    ],
-    'xiaohongshu': [
-        r'xiaohongshu\.com/explore/',
-        r'xiaohongshu\.com/discovery/item/',
-        r'xhslink\.com/',
     ],
 }
 
@@ -181,7 +172,7 @@ async def summarize_video(url: str, api_key: str, api_base: str = "https://api.d
     总结视频内容
 
     Args:
-        url: 视频 URL
+        url: B站视频 URL
         api_key: LLM API Key
         api_base: LLM API Base URL
         model: LLM 模型名
@@ -193,7 +184,7 @@ async def summarize_video(url: str, api_key: str, api_base: str = "https://api.d
     """
     platform = detect_platform(url)
     if not platform:
-        raise ValueError(f"不支持的视频链接: {url}")
+        raise ValueError(f"不支持的视频链接，仅支持B站视频")
 
     # 提取字幕
     subtitle_text = ""
@@ -207,7 +198,7 @@ async def summarize_video(url: str, api_key: str, api_base: str = "https://api.d
         logger.warning(f"yt-dlp 提取失败: {e}")
 
     # 方案2: B站 API（备用）
-    if not subtitle_text and platform == 'bilibili':
+    if not subtitle_text:
         try:
             bvid_match = re.search(r'BV[a-zA-Z0-9]+', url)
             if bvid_match:

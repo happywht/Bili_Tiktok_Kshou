@@ -14,19 +14,15 @@ from ..models.schemas import (
 )
 from ..services.factory import ServiceFactory
 from ..services.base import PlatformType
+from ..services.video_digest_service import video_digest_service
 from ..config import settings
 from ..exceptions import (
     PlatformError,
     CookieExpiredError,
     BilibiliCookieExpiredError,
-    DouyinCookieExpiredError,
-    XiaohongshuCookieExpiredError,
     RateLimitError,
-    CaptchaDetectedError,
     PlatformNotAvailableError,
     BilibiliNotAvailableError,
-    DouyinNotAvailableError,
-    XiaohongshuNotAvailableError,
     ContentNotFoundError,
     InvalidParameterError,
     NetworkError,
@@ -51,8 +47,6 @@ async def get_platforms():
         # 添加图标信息
         platform_icons = {
             "bilibili": "📺",
-            "douyin": "🎵",
-            "xiaohongshu": "📕",
         }
 
         platform_infos = [
@@ -85,7 +79,7 @@ async def search_videos(
     keyword: str = Query(..., min_length=1, max_length=100, description="搜索关键词"),
     page: int = Query(1, ge=1, le=50, description="页码"),
     page_size: int = Query(20, ge=1, le=50, description="每页数量"),
-    platform: str = Query("bilibili", description="平台标识: bilibili, douyin, xiaohongshu"),
+    platform: str = Query("bilibili", description="平台标识: bilibili"),
     order: str = Query("totalrank", description="排序方式"),
 ):
     """
@@ -96,12 +90,10 @@ async def search_videos(
     - **page_size**: 每页数量（1-50，默认20）
     - **platform**: 平台标识
         - bilibili: 哔哩哔哩
-        - douyin: 抖音
-        - xiaohongshu: 小红书（待实现）
     - **order**: 排序方式（各平台支持不同）
     """
     # 验证平台
-    valid_platforms = ["bilibili", "douyin", "xiaohongshu"]
+    valid_platforms = ["bilibili"]
     if platform not in valid_platforms:
         raise InvalidParameterError(
             message=f"不支持的平台: {platform}",
@@ -122,71 +114,38 @@ async def search_videos(
 
     try:
         # 执行搜索（同步方法，用线程池避免阻塞事件循环）
-        if platform in ("douyin", "xiaohongshu"):
-            items = await asyncio.to_thread(
-                service.search,
-                keyword=keyword,
-                page=page,
-                page_size=page_size,
-                order=order,
-            )
-        else:
-            items = service.search(
-                keyword=keyword,
-                page=page,
-                page_size=page_size,
-                order=order
-            )
+        items = await asyncio.to_thread(
+            service.search,
+            keyword=keyword,
+            page=page,
+            page_size=page_size,
+            order=order
+        )
 
         # 转换为通用内容模型
         content_items = []
         for item in items:
-            if platform == "bilibili":
-                # B站特定转换
-                content_items.append(ContentItem(
-                    id=item.bvid if hasattr(item, 'bvid') else item.id,
-                    title=item.title,
-                    description=getattr(item, 'description', ''),
-                    author=item.author,
-                    author_id=str(getattr(item, 'author_id', '')),
-                    cover_url=getattr(item, 'cover_url', ''),
-                    url=item.video_url if hasattr(item, 'video_url') else item.url,
-                    platform=platform,
-                    stats=ContentStats(
-                        play_count=getattr(item, 'play_count', 0),
-                        like_count=getattr(item, 'like_count', 0),
-                        comment_count=0,
-                        share_count=0,
-                    ),
-                    tags=getattr(item, 'tags', []),
-                    publish_time=str(getattr(item, 'pubdate', '')),
-                    duration=getattr(item, 'duration', ''),
-                    content_type="video"
-                ))
-            else:
-                # 其他平台直接使用to_dict
-                item_dict = item.to_dict() if hasattr(item, 'to_dict') else item
-                content_items.append(ContentItem(
-                    id=item_dict.get('id', ''),
-                    title=item_dict.get('title', ''),
-                    description=item_dict.get('description', ''),
-                    author=item_dict.get('author', ''),
-                    author_id=str(item_dict.get('author_id', '')),
-                    cover_url=item_dict.get('cover_url', ''),
-                    url=item_dict.get('url', ''),
-                    platform=platform,
-                    stats=ContentStats(
-                        play_count=item_dict.get('play_count', 0),
-                        like_count=item_dict.get('like_count', 0),
-                        comment_count=item_dict.get('comment_count', 0),
-                        share_count=item_dict.get('share_count', 0),
-                        collect_count=item_dict.get('collect_count', 0),
-                    ),
-                    tags=item_dict.get('tags', []),
-                    publish_time=item_dict.get('publish_time', ''),
-                    duration=item_dict.get('duration', ''),
-                    content_type=item_dict.get('content_type', 'video'),
-                ))
+            # B站特定转换
+            content_items.append(ContentItem(
+                id=item.bvid if hasattr(item, 'bvid') else item.id,
+                title=item.title,
+                description=getattr(item, 'description', ''),
+                author=item.author,
+                author_id=str(getattr(item, 'author_id', '')),
+                cover_url=getattr(item, 'cover_url', ''),
+                url=item.video_url if hasattr(item, 'video_url') else item.url,
+                platform=platform,
+                stats=ContentStats(
+                    play_count=getattr(item, 'play_count', 0),
+                    like_count=getattr(item, 'like_count', 0),
+                    comment_count=0,
+                    share_count=0,
+                ),
+                tags=getattr(item, 'tags', []),
+                publish_time=str(getattr(item, 'pubdate', '')),
+                duration=getattr(item, 'duration', ''),
+                content_type="video"
+            ))
 
         return ApiResponse(
             success=True,
@@ -267,207 +226,6 @@ async def search_bilibili(
     )
 
 
-# ============ 抖音搜索 ============
-
-@router.get("/search/douyin", response_model=ApiResponse[MultiSearchData])
-async def search_douyin(
-    keyword: str = Query(..., min_length=1, max_length=100, description="搜索关键词"),
-    page: int = Query(1, ge=1, le=50, description="页码"),
-    page_size: int = Query(20, ge=1, le=50, description="每页数量"),
-    sort_type: int = Query(0, ge=0, le=2, description="排序: 0-综合, 1-最多点赞, 2-最新"),
-):
-    """
-    抖音视频搜索
-
-    - **keyword**: 搜索关键词（必填，1-100字符）
-    - **page**: 页码（1-50，默认1）
-    - **page_size**: 每页数量（1-50，默认20）
-    - **sort_type**: 排序方式
-        - 0: 综合排序
-        - 1: 最多点赞
-        - 2: 最新发布
-    """
-    try:
-        service = ServiceFactory.get_service('douyin', settings.get_platform_config('douyin'))
-        items = await asyncio.to_thread(
-            service.search,
-            keyword=keyword,
-            page=page,
-            page_size=page_size,
-            sort_type=sort_type,
-        )
-
-        # 转换为通用内容模型
-        content_items = [
-            ContentItem(
-                id=item.id,
-                title=item.title,
-                description=item.description,
-                author=item.author,
-                author_id="",
-                cover_url=item.cover_url,
-                url=item.url,
-                platform="douyin",
-                stats=ContentStats(
-                    play_count=item.play_count,
-                    like_count=item.like_count,
-                    comment_count=item.comment_count,
-                    share_count=item.share_count,
-                ),
-                tags=item.tags,
-                publish_time=item.publish_time,
-                duration=item.duration,
-                content_type="video"
-            )
-            for item in items
-        ]
-
-        return ApiResponse(
-            success=True,
-            code=200,
-            message="success",
-            platform="douyin",
-            data=MultiSearchData(items=content_items, platform="douyin"),
-            pagination=PaginationInfo(
-                page=page,
-                page_size=page_size,
-                has_more=len(items) == page_size
-            )
-        )
-
-    except ValueError as e:
-        raise DouyinNotAvailableError(
-            message="抖音服务不可用",
-            original_error=e
-        )
-    except CookieExpiredError:
-        raise
-    except RateLimitError:
-        raise
-    except PlatformError:
-        raise
-    except Exception as e:
-        error_msg = str(e)
-        # 检测抖音特定错误
-        if "cookie" in error_msg.lower() or "登录" in error_msg:
-            raise DouyinCookieExpiredError(
-                message="抖音登录状态已过期，请使用 --no-headless 模式首次运行以扫码登录（参考 README）",
-                original_error=e
-            )
-        if "验证码" in error_msg or "captcha" in error_msg.lower():
-            raise CaptchaDetectedError(
-                message="抖音需要验证码验证",
-                original_error=e
-            )
-        if "超时" in error_msg or "timeout" in error_msg.lower():
-            raise TimeoutError(
-                message="抖音搜索超时，浏览器启动或API响应较慢",
-                original_error=e
-            )
-        raise PlatformError(
-            message=f"抖音搜索失败: {error_msg}",
-            original_error=e
-        )
-
-
-# ============ 小红书搜索 ============
-
-@router.get("/search/xiaohongshu", response_model=ApiResponse[MultiSearchData])
-async def search_xiaohongshu(
-    keyword: str = Query(..., min_length=1, max_length=100, description="搜索关键词"),
-    page: int = Query(1, ge=1, le=50, description="页码"),
-    page_size: int = Query(20, ge=1, le=50, description="每页数量"),
-):
-    """
-    小红书内容搜索（基于 MediaCrawler 浏览器自动化）
-
-    - **keyword**: 搜索关键词（必填，1-100字符）
-    - **page**: 页码（1-50，默认1）
-    - **page_size**: 每页数量（1-50，默认20）
-
-    注意：首次使用需通过扫码登录。搜索基于浏览器自动化，响应较慢（约10-30秒）。
-    """
-    try:
-        service = ServiceFactory.get_service('xiaohongshu', settings.get_platform_config('xiaohongshu'))
-        items = await asyncio.to_thread(
-            service.search,
-            keyword=keyword,
-            page=page,
-            page_size=page_size,
-        )
-
-        content_items = [
-            ContentItem(
-                id=item.id,
-                title=item.title,
-                description=item.description,
-                author=item.author,
-                author_id="",
-                cover_url=item.cover_url,
-                url=item.url,
-                platform="xiaohongshu",
-                stats=ContentStats(
-                    play_count=item.play_count,
-                    like_count=item.like_count,
-                    comment_count=item.comment_count,
-                    share_count=item.share_count,
-                    collect_count=int(getattr(item, 'collect_count', 0) or 0),
-                ),
-                tags=item.tags,
-                publish_time=item.publish_time,
-                duration=getattr(item, 'duration', ''),
-                content_type=getattr(item, 'content_type', 'note') or 'note',
-            )
-            for item in items
-        ]
-
-        return ApiResponse(
-            success=True,
-            code=200,
-            message="success",
-            platform="xiaohongshu",
-            data=MultiSearchData(items=content_items, platform="xiaohongshu"),
-            pagination=PaginationInfo(
-                page=page,
-                page_size=page_size,
-                has_more=len(items) == page_size
-            )
-        )
-
-    except ValueError as e:
-        raise XiaohongshuNotAvailableError(
-            message="小红书服务不可用",
-            original_error=e
-        )
-    except CookieExpiredError:
-        raise
-    except RateLimitError:
-        raise
-    except PlatformError:
-        raise
-    except Exception as e:
-        error_msg = str(e)
-        if "cookie" in error_msg.lower() or "登录" in error_msg:
-            raise XiaohongshuCookieExpiredError(
-                message="小红书登录状态已过期，请使用 --no-headless 模式首次运行以扫码登录（参考 README）",
-                original_error=e
-            )
-        if "超时" in error_msg or "timeout" in error_msg.lower():
-            raise TimeoutError(
-                message="小红书搜索超时，浏览器启动或API响应较慢",
-                original_error=e
-            )
-        if "验证码" in error_msg or "captcha" in error_msg.lower():
-            raise CaptchaDetectedError(
-                message="小红书需要验证码验证",
-                original_error=e
-            )
-        raise PlatformError(
-            message=f"小红书搜索失败: {error_msg}",
-            original_error=e
-        )
-
-
 # ============ 图片代理 ============
 
 @router.get("/proxy-image")
@@ -487,21 +245,11 @@ async def proxy_image(
         if decoded_url.startswith('//'):
             decoded_url = 'https:' + decoded_url
 
-        # 允许的图片域名（支持多平台）
+        # 允许的图片域名
         allowed_domains = [
             # B站
             'i0.hdslb.com', 'i1.hdslb.com', 'i2.hdslb.com',
             'hdslb.com', 'archive.biliimg.com', 'bili.bilivideo.com',
-            # 抖音
-            'p3.douyinpic.com', 'p6.douyinpic.com', 'p9.douyinpic.com',
-            'douyinpic.com', 'v3-web.douyinvod.com',
-            'p3-pc-sign.douyinpic.com', 'p6-pc-sign.douyinpic.com',
-            'p9-pc-sign.douyinpic.com', 'p11-pc-sign.douyinpic.com',
-            'p26-pc-sign.douyinpic.com', 'p29-pc-sign.douyinpic.com',
-            # 小红书
-            'ci.xiaohongshu.com', 'sns-webpic-qc.xhscdn.com',
-            'xhscdn.com', 'sns-img-bd.xhscdn.com',
-            'ci.xiaohongshu.com',
         ]
         parsed = urllib.parse.urlparse(decoded_url)
 
@@ -510,7 +258,7 @@ async def proxy_image(
         if not is_allowed:
             raise InvalidParameterError(
                 message=f"不允许代理该域名的图片",
-                suggestion="仅支持B站、抖音、小红书的图片",
+                suggestion="仅支持B站的图片",
                 details={"netloc": parsed.netloc}
             )
 
@@ -519,10 +267,6 @@ async def proxy_image(
             'hdslb.com': 'https://www.bilibili.com/',
             'biliimg.com': 'https://www.bilibili.com/',
             'bilivideo.com': 'https://www.bilibili.com/',
-            'douyinpic.com': 'https://www.douyin.com/',
-            'douyinvod.com': 'https://www.douyin.com/',
-            'xhscdn.com': 'https://www.xiaohongshu.com/',
-            'xiaohongshu.com': 'https://www.xiaohongshu.com/',
         }
         referer = 'https://www.bilibili.com/'  # 默认
         for domain, ref in referer_map.items():
@@ -581,3 +325,84 @@ async def proxy_image(
             message=f"图片代理失败: {str(e)}",
             original_error=e
         )
+
+
+# ============ 综合视频推送 ============
+
+@router.post("/digest", response_model=ApiResponse[dict])
+async def create_video_digest(
+    keywords: List[str] = Query(..., min_length=2, max_length=5, description="搜索关键词（2-5个）"),
+    per_keyword: int = Query(5, ge=1, le=10, description="每个关键词获取的视频数量"),
+    min_play: int = Query(10000, ge=0, description="最小播放量筛选"),
+    min_like: int = Query(500, ge=0, description="最小点赞数筛选"),
+    max_videos: int = Query(20, ge=5, le=50, description="最终保留的最大视频数"),
+    sort_by: str = Query("score", description="排序方式: score(综合)/play(播放)/like(点赞)"),
+):
+    """
+    综合视频推送
+
+    根据多个关键词检索B站视频，筛选优质内容，生成Markdown格式推送。
+
+    - **keywords**: 搜索关键词（必填，2-5个，建议2-3个）
+    - **per_keyword**: 每个关键词获取的视频数量（1-10，默认5）
+    - **min_play**: 最小播放量筛选（默认10000）
+    - **min_like**: 最小点赞数筛选（默认500）
+    - **max_videos**: 最终保留的最大视频数（5-50，默认20）
+    - **sort_by**: 排序方式
+        - score: 综合评分（默认，播放量×0.5 + 点赞×10 + 评论×5）
+        - play: 按播放量排序
+        - like: 按点赞数排序
+
+    返回Markdown格式的视频推送内容。
+    """
+    try:
+        # 验证排序方式
+        valid_sort = ["score", "play", "like"]
+        if sort_by not in valid_sort:
+            raise InvalidParameterError(
+                message=f"不支持的排序方式: {sort_by}",
+                suggestion=f"请使用以下排序方式之一: {', '.join(valid_sort)}"
+            )
+
+        # 创建推送（同步操作，用线程池）
+        result = await asyncio.to_thread(
+            video_digest_service.create_digest,
+            keywords=keywords,
+            per_keyword=per_keyword,
+            min_play=min_play,
+            min_like=min_like,
+            max_videos=max_videos,
+            sort_by=sort_by
+        )
+
+        return ApiResponse(
+            success=True,
+            code=200,
+            message="综合推送生成成功",
+            data=result
+        )
+
+    except ValueError as e:
+        raise InvalidParameterError(message=str(e))
+    except Exception as e:
+        error_msg = str(e)
+        if "登录" in error_msg or "SESSDATA" in error_msg:
+            raise BilibiliCookieExpiredError(
+                message="B站登录状态可能已过期",
+                original_error=e
+            )
+        if "429" in error_msg or "rate limit" in error_msg.lower():
+            raise RateLimitError(
+                message="请求过于频繁",
+                original_error=e
+            )
+        if "timeout" in error_msg.lower():
+            raise TimeoutError(
+                message="搜索超时",
+                original_error=e
+            )
+        raise PlatformError(
+            message=f"综合推送生成失败: {error_msg}",
+            original_error=e
+        )
+
